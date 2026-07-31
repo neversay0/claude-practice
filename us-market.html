@@ -579,21 +579,22 @@
   // Yahoo 차트 JSON 조회. github.io 등 실제 도메인에선 Yahoo가 CORS를 막으므로 프록시로 우회.
   // interval=30m: 5분봉 대비 응답 ~1/4. includePrePost로 프리/애프터 최신가 반영.
   async function fetchYahooChart(sym) {
-    const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) +
-      "?interval=30m&range=1d&includePrePost=true";
+    const path = "v8/finance/chart/" + encodeURIComponent(sym) + "?interval=30m&range=1d&includePrePost=true";
+    const direct = "https://query1.finance.yahoo.com/" + path;
     const attempts = [];
-    if (location.protocol === "file:") {              // 로컬 파일에선 직접 호출이 가장 빠름
-      attempts.push(async () => (await _timedFetch(yurl)).json());
+    if (location.protocol === "file:") {              // 로컬 파일: Yahoo 직접 호출(빠름)
+      attempts.push(async () => (await _timedFetch(direct)).json());
+    } else {                                          // 배포(Netlify): 동일 출처 프록시 → CORS 없음
+      attempts.push(async () => {
+        const r = await _timedFetch("/yq/" + path);
+        if (!r.ok) throw new Error("proxy " + r.status);
+        return await r.json();
+      });
     }
-    attempts.push(async () => {                       // CORS 우회 프록시 (배포용)
-      const r = await _timedFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl));
+    attempts.push(async () => {                       // 최후 폴백(공개 프록시)
+      const r = await _timedFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(direct));
       if (!r.ok) throw new Error("raw " + r.status);
       return await r.json();
-    });
-    attempts.push(async () => {                       // 프록시 폴백(JSON 래핑형)
-      const r = await _timedFetch("https://api.allorigins.win/get?url=" + encodeURIComponent(yurl));
-      if (!r.ok) throw new Error("get " + r.status);
-      return JSON.parse((await r.json()).contents);
     });
     let lastErr;
     for (const a of attempts) { try { return await a(); } catch (e) { lastErr = e; } }
