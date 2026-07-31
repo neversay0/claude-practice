@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간밤의 미국장 브리핑</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #141922;
+    --panel-2: #1b212d;
+    --border: #263041;
+    --text: #e6ebf2;
+    --muted: #8b97a8;
+    --accent: #4f8cff;
+    --up: #22c55e;
+    --down: #ef4444;
+    --live: #ff0033;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* ── 상단 헤더 ── */
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, #16203a 0%, #141922 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+  header.top h1 { font-size: 22px; letter-spacing: -0.5px; }
+  header.top .date { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .clocks { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .clock { text-align: right; }
+  .clock .label { font-size: 11px; color: var(--muted); }
+  .clock .time { font-size: 20px; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .status-badge {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .status-badge .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle;
+  }
+
+  /* ── 섹션 공통 ── */
+  section { margin-bottom: 18px; }
+  .section-title {
+    font-size: 14px; font-weight: 700; color: var(--muted);
+    margin: 0 0 10px 4px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    overflow: hidden;
+  }
+
+  /* ── 2단 레이아웃 ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── 바로가기 버튼 ── */
+  .links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .link-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px; font-weight: 600;
+    transition: all .15s;
+  }
+  .link-btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .link-btn .ico { font-size: 18px; }
+  .link-btn.live .ico { color: var(--live); }
+  .link-btn small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 2px; }
+
+  .tradingview-widget-container { width: 100%; }
+  footer.note {
+    margin-top: 24px; padding: 14px 4px;
+    color: var(--muted); font-size: 12px; text-align: center; line-height: 1.7;
+  }
+  .heartbeat { animation: hb 1.4s ease-in-out infinite; }
+  @keyframes hb { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  /* ── 종목 타일 ── */
+  .tile-group-label { font-size: 13px; color: var(--muted); font-weight: 700; margin: 6px 4px 8px; }
+  .treemap {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    margin-bottom: 18px;
+    background: var(--bg);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .tm-tile {
+    position: absolute;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border-radius: 7px;
+    color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-2);
+    text-shadow: 0 1px 2px rgba(0,0,0,.45);
+    transition: background .4s ease, left .3s ease, top .3s ease, width .3s ease, height .3s ease;
+  }
+  .tm-tile .nm { font-weight: 700; line-height: 1.1; }
+  .tm-tile .tk { font-size: 11px; opacity: .78; margin-top: 1px; }
+  .tm-tile .pr { font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .tm-tile .chg { font-weight: 600; font-variant-numeric: tabular-nums; margin-top: auto; }
+
+  /* ── 새로고침 버튼 ── */
+  .refresh-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 16px; line-height: 1; cursor: pointer;
+    transition: background .15s;
+  }
+  .refresh-btn:hover { background: var(--border); }
+  .refresh-btn:disabled { cursor: default; opacity: .7; }
+  .refresh-btn.spinning { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── 시장 지표 탭 패널 (Yahoo Finance) ── */
+  .mkt-tabs { display: flex; gap: 4px; padding: 10px 10px 0; flex-wrap: wrap; }
+  .mkt-tabs button {
+    flex: 1; min-width: 54px; padding: 9px 6px;
+    border: none; border-radius: 9px 9px 0 0;
+    background: transparent; color: var(--muted);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .mkt-tabs button:hover { color: var(--text); }
+  .mkt-tabs button.active { background: var(--panel-2); color: var(--text); }
+  .mkt-list { padding: 4px 6px 10px; }
+  .mkt-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 15px 12px; border-top: 1px solid var(--border);
+  }
+  .mkt-row:first-child { border-top: none; }
+  .mkt-name { flex: 1; font-size: 14px; font-weight: 600; }
+  .mkt-price { font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; }
+  .mkt-chg { min-width: 118px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+  .mkt-chg.up { color: #ef4444; }     /* 상승 = 빨강 (한국식) */
+  .mkt-chg.down { color: #22c55e; }   /* 하락 = 초록 */
+  .mkt-chg.flat { color: var(--muted); }
+
+  /* ── 실시간 스크롤 티커 (Yahoo Finance) ── */
+  .ticker { overflow: hidden; white-space: nowrap; }
+  .ticker-track {
+    display: inline-flex;
+    align-items: center;
+    will-change: transform;
+    animation: tickerScroll 55s linear infinite;
+  }
+  .ticker:hover .ticker-track { animation-play-state: paused; }
+  @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .tk-item {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    padding: 13px 20px; border-right: 1px solid var(--border);
+  }
+  .tk-item .nm { font-weight: 700; font-size: 14px; }
+  .tk-item .pr { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tk-item .cg { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tk-item .cg.up { color: #ef4444; }    /* 상승 = 빨강 */
+  .tk-item .cg.down { color: #22c55e; }  /* 하락 = 초록 */
+  .tk-item .cg.flat { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 상단: 제목 · 시계 · 장 상태 -->
+  <header class="top">
+    <div>
+      <h1>🌎 간밤의 미국장 브리핑</h1>
+      <div class="date" id="today"></div>
+    </div>
+    <div class="clocks">
+      <div class="clock">
+        <div class="label">서울 (KST)</div>
+        <div class="time" id="clockKST">--:--:--</div>
+      </div>
+      <div class="clock">
+        <div class="label">뉴욕 (ET)</div>
+        <div class="time" id="clockET">--:--:--</div>
+      </div>
+      <div class="status-badge" id="statusBadge"><span class="dot"></span>확인 중…</div>
+    </div>
+  </header>
+
+  <!-- 실시간 티커 (Yahoo Finance) -->
+  <section>
+    <div class="panel" style="padding:0; overflow:hidden;">
+      <div class="ticker">
+        <div class="ticker-track" id="tickerTrack">
+          <span class="tk-item"><span class="nm">불러오는 중…</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 라이브 유튜브 바로가기 -->
+  <section>
+    <div class="section-title">📺 라이브 방송 바로가기</div>
+    <div class="links">
+      <a class="link-btn live" href="https://www.youtube.com/results?search_query=%EB%AF%B8%EA%B5%AD%EC%A6%9D%EC%8B%9C+%EB%9D%BC%EC%9D%B4%EB%B8%8C&sp=EgJAAQ%253D%253D" target="_blank" rel="noopener">
+        <span class="ico heartbeat">●</span>
+        <span>미국증시 라이브<small>유튜브 실시간 검색</small></span>
+      </a>
+      <a class="link-btn live" href="https://www.youtube.com/results?search_query=%EB%AF%B8%EA%B5%AD%EC%A3%BC%EC%8B%9D+%EB%9D%BC%EC%9D%B4%EB%B8%8C&sp=EgJAAQ%253D%253D" target="_blank" rel="noopener">
+        <span class="ico heartbeat">●</span>
+        <span>미국주식 라이브<small>유튜브 실시간 검색</small></span>
+      </a>
+      <a class="link-btn live" href="https://www.youtube.com/results?search_query=%ED%94%84%EB%A6%AC%EB%A7%88%EC%BC%93+%EB%9D%BC%EC%9D%B4%EB%B8%8C&sp=EgJAAQ%253D%253D" target="_blank" rel="noopener">
+        <span class="ico heartbeat">●</span>
+        <span>프리마켓 라이브<small>유튜브 실시간 검색</small></span>
+      </a>
+      <a class="link-btn live" href="https://www.youtube.com/@3protv/live" target="_blank" rel="noopener">
+        <span class="ico heartbeat">●</span>
+        <span>삼프로TV 라이브(오전)<small>@3protv · 현재 라이브</small></span>
+      </a>
+      <a class="link-btn live" href="https://www.youtube.com/@futuresnow/live" target="_blank" rel="noopener">
+        <span class="ico heartbeat">●</span>
+        <span>오선 라이브<small>@futuresnow · 현재 라이브</small></span>
+      </a>
+      <a class="link-btn" href="https://www.youtube.com/@Bloomberg/streams" target="_blank" rel="noopener">
+        <span class="ico">📡</span>
+        <span>Bloomberg TV<small>블룸버그 라이브</small></span>
+      </a>
+      <a class="link-btn" href="https://www.youtube.com/@YahooFinance/streams" target="_blank" rel="noopener">
+        <span class="ico">📈</span>
+        <span>Yahoo Finance<small>야후 파이낸스</small></span>
+      </a>
+      <a class="link-btn" href="https://www.youtube.com/@CNBC/streams" target="_blank" rel="noopener">
+        <span class="ico">🎙️</span>
+        <span>CNBC<small>실시간 스트림</small></span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 지수/선물 + 밤사이 뉴스 -->
+  <section>
+    <div class="grid-2">
+      <div>
+        <div class="section-title">📊 지수 · 선물 · 환율 · 원자재 · 채권</div>
+        <div class="panel mkt-panel" style="padding:0;">
+          <div class="mkt-tabs" id="mktTabs">
+            <button data-tab="idx" class="active">지수</button>
+            <button data-tab="fut">선물</button>
+            <button data-tab="fx">환율</button>
+            <button data-tab="cmd">원자재</button>
+            <button data-tab="bond">채권</button>
+          </div>
+          <div class="mkt-list" id="mktList"></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">📰 밤사이 뉴스 헤드라인</div>
+        <div class="panel" style="padding:0;">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+            {
+              "feedMode": "market",
+              "market": "stock",
+              "isTransparent": true,
+              "displayMode": "regular",
+              "width": "100%",
+              "height": 520,
+              "colorTheme": "dark",
+              "locale": "en"
+            }
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 반도체 · 하이퍼스케일러 -->
+  <section>
+    <div class="section-title" style="display:flex; align-items:center; gap:8px;">
+      <span>🔌 미국 시가총액 상위 20 지도</span>
+      <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px;">
+        (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#ef4444;">■</span> 빨강 · 하락 <span style="color:#22c55e;">■</span> 초록, 등락 클수록 선명 · 크기=시가총액)</span>
+      <button id="tmRefresh" class="refresh-btn" title="새로고침" aria-label="새로고침">↻</button>
+    </div>
+    <div class="treemap" id="tm-all"></div>
+  </section>
+
+  <!-- 뉴스 사이트 바로가기 -->
+  <section>
+    <div class="section-title">🔗 뉴스 · 데이터 사이트</div>
+    <div class="links">
+      <a class="link-btn" href="https://finance.yahoo.com/" target="_blank" rel="noopener"><span class="ico">💹</span><span>Yahoo Finance</span></a>
+      <a class="link-btn" href="https://www.cnbc.com/pre-markets/" target="_blank" rel="noopener"><span class="ico">🏦</span><span>CNBC 프리마켓</span></a>
+      <a class="link-btn" href="https://www.marketwatch.com/" target="_blank" rel="noopener"><span class="ico">📊</span><span>MarketWatch</span></a>
+      <a class="link-btn" href="https://www.investing.com/" target="_blank" rel="noopener"><span class="ico">🌐</span><span>Investing.com</span></a>
+      <a class="link-btn" href="https://www.bloomberg.com/markets" target="_blank" rel="noopener"><span class="ico">📕</span><span>Bloomberg</span></a>
+      <a class="link-btn" href="https://kr.investing.com/" target="_blank" rel="noopener"><span class="ico">🇰🇷</span><span>인베스팅 한국판</span></a>
+    </div>
+  </section>
+
+  <footer class="note">
+    시세·뉴스 데이터는 TradingView 및 Yahoo Finance를 통해 제공되며 실제 체결가와 지연이 있을 수 있습니다.<br>
+    본 페이지는 정보 제공용이며 투자 자문이나 매매 권유가 아닙니다. 투자 판단과 책임은 본인에게 있습니다.
+  </footer>
+
+</div>
+
+<script>
+  const KST = "Asia/Seoul";
+  const ET = "America/New_York";
+
+  function timeStr(tz) {
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    }).format(new Date());
+  }
+
+  // 뉴욕 현지의 요일/시각(분)을 구해 장 상태 판별
+  function etNow() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: ET, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false
+    }).formatToParts(new Date());
+    const get = t => parts.find(p => p.type === t).value;
+    const wd = get("weekday");              // Mon, Tue ...
+    let hour = parseInt(get("hour"), 10);
+    if (hour === 24) hour = 0;              // 자정 표기 보정
+    const min = parseInt(get("minute"), 10);
+    return { wd, mins: hour * 60 + min };
+  }
+
+  function marketStatus() {
+    const { wd, mins } = etNow();
+    if (wd === "Sat" || wd === "Sun") {
+      return { label: "주말 휴장", color: "#8b97a8" };
+    }
+    if (mins >= 570 && mins < 960) return { label: "정규장 진행 중", color: "#22c55e" };   // 09:30~16:00
+    if (mins >= 240 && mins < 570) return { label: "프리마켓", color: "#f59e0b" };           // 04:00~09:30
+    if (mins >= 960 && mins < 1200) return { label: "애프터마켓", color: "#a855f7" };        // 16:00~20:00
+    return { label: "장 마감", color: "#8b97a8" };
+  }
+
+  function tick() {
+    document.getElementById("clockKST").textContent = timeStr(KST);
+    document.getElementById("clockET").textContent = timeStr(ET);
+
+    const s = marketStatus();
+    const badge = document.getElementById("statusBadge");
+    badge.style.background = s.color + "22";
+    badge.style.color = s.color;
+    badge.innerHTML = '<span class="dot" style="background:' + s.color + '"></span>' + s.label;
+  }
+
+  document.getElementById("today").textContent =
+    new Intl.DateTimeFormat("ko-KR", { dateStyle: "full" }).format(new Date()) + " · 오늘의 시장 브리핑";
+
+  tick();
+  setInterval(tick, 1000);
+
+  // 최근 요청 결과를 잠깐 캐시 → 티커·트리맵·탭이 같은 종목을 각각 중복 호출하지 않게 함
+  const _quoteCache = new Map(); // sym -> { t, promise }
+
+  // ── 시장 지표 탭 패널 (Yahoo Finance v8) ──
+  const MKT = {
+    idx:  [ { s: "^GSPC", n: "S&P 500" }, { s: "^IXIC", n: "나스닥 종합" }, { s: "^DJI", n: "다우존스" }, { s: "^VIX", n: "VIX 공포지수" }, { s: "^RUT", n: "러셀 2000" } ],
+    fut:  [ { s: "ES=F", n: "S&P 선물" }, { s: "NQ=F", n: "나스닥 선물" }, { s: "YM=F", n: "다우 선물" }, { s: "RTY=F", n: "러셀 선물" } ],
+    fx:   [ { s: "KRW=X", n: "원/달러" }, { s: "DX-Y.NYB", n: "달러인덱스" }, { s: "EURUSD=X", n: "유로/달러" }, { s: "JPY=X", n: "달러/엔" }, { s: "CNY=X", n: "달러/위안" } ],
+    cmd:  [ { s: "CL=F", n: "WTI 유가" }, { s: "BZ=F", n: "브렌트유" }, { s: "GC=F", n: "금" }, { s: "SI=F", n: "은" }, { s: "NG=F", n: "천연가스" }, { s: "HG=F", n: "구리" } ],
+    bond: [ { s: "^TNX", n: "美 10년물" }, { s: "2YY=F", n: "美 2년물" }, { s: "^FVX", n: "美 5년물" }, { s: "^TYX", n: "美 30년물" } ]
+  };
+  const mktData = {};   // { 심볼: {price, abs, pct} }
+  let mktTab = "idx";
+
+  function fmtNum(p) {
+    const a = Math.abs(p);
+    const d = a >= 10 ? 2 : a >= 1 ? 3 : 4;
+    return p.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  function renderMkt() {
+    const box = document.getElementById("mktList");
+    box.innerHTML = MKT[mktTab].map(row => {
+      const q = mktData[row.s];
+      let price = "—", chg = "불러오는 중…", cls = "flat";
+      if (q) {
+        price = fmtNum(q.price);
+        const flat = Math.abs(q.pct) < 0.005;
+        cls = flat ? "flat" : (q.pct > 0 ? "up" : "down");
+        const arrow = flat ? "–" : (q.pct > 0 ? "▲" : "▼");
+        const sign = q.pct > 0 ? "+" : "";
+        chg = arrow + " " + sign + q.pct.toFixed(2) + "% (" + sign + fmtNum(q.abs) + ")";
+      }
+      return '<div class="mkt-row"><span class="mkt-name">' + row.n + '</span>' +
+        '<span class="mkt-price">' + price + '</span>' +
+        '<span class="mkt-chg ' + cls + '">' + chg + '</span></div>';
+    }).join("");
+  }
+
+  const mktLoaded = new Set();   // 이미 불러온(=사용자가 열어본) 탭
+  async function loadMktTab(tab) {
+    await Promise.all(MKT[tab].map(async r => {
+      try { mktData[r.s] = await fetchQuote(r.s); } catch (e) { /* 이전 값 유지 */ }
+    }));
+    mktLoaded.add(tab);
+    if (tab === mktTab) renderMkt();
+  }
+
+  document.getElementById("mktTabs").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-tab]");
+    if (!btn) return;
+    mktTab = btn.dataset.tab;
+    document.querySelectorAll("#mktTabs button").forEach(b => b.classList.toggle("active", b === btn));
+    renderMkt();            // 캐시된 값 즉시 표시(없으면 스켈레톤)
+    loadMktTab(mktTab);     // 해당 탭 데이터 로드/갱신
+  });
+
+  renderMkt();              // 최초 스켈레톤
+  loadMktTab("idx");        // 지수 탭만 먼저 로드(나머지는 클릭 시)
+  setInterval(() => mktLoaded.forEach(t => loadMktTab(t)), 60 * 1000); // 열어본 탭만 갱신
+
+  // ── 실시간 스크롤 티커 (Yahoo Finance v8) ──
+  const TICKER = [
+    { s: "^GSPC", n: "S&P 500" }, { s: "^IXIC", n: "나스닥" }, { s: "^DJI", n: "다우" },
+    { s: "^VIX", n: "VIX" }, { s: "DX-Y.NYB", n: "달러인덱스" }, { s: "^TNX", n: "美 10Y" },
+    { s: "KRW=X", n: "원/달러" }, { s: "NVDA", n: "엔비디아" }, { s: "AAPL", n: "애플" },
+    { s: "TSLA", n: "테슬라" }, { s: "MSFT", n: "MS" }
+  ];
+
+  async function refreshTicker() {
+    const data = await Promise.all(TICKER.map(async t => {
+      try { return { t, q: await fetchQuote(t.s) }; } catch (e) { return { t, q: null }; }
+    }));
+    const html = data.map(({ t, q }) => {
+      if (!q) return '<span class="tk-item"><span class="nm">' + t.n + '</span></span>';
+      const flat = Math.abs(q.pct) < 0.005;
+      const cls = flat ? "flat" : (q.pct > 0 ? "up" : "down");
+      const arrow = flat ? "" : (q.pct > 0 ? "▲ " : "▼ ");
+      const sign = q.pct > 0 ? "+" : "";
+      return '<span class="tk-item"><span class="nm">' + t.n + '</span>' +
+        '<span class="pr">' + fmtNum(q.price) + '</span>' +
+        '<span class="cg ' + cls + '">' + arrow + sign + q.pct.toFixed(2) + '%</span></span>';
+    }).join("");
+    // 무한 스크롤을 위해 목록을 두 번 반복 (translateX -50% 지점에서 이어짐)
+    document.getElementById("tickerTrack").innerHTML = html + html;
+  }
+
+  refreshTicker();
+  setInterval(refreshTicker, 60 * 1000); // 1분마다 갱신
+
+  // ── 종목 트리맵 (Yahoo Finance 시세) ──
+  // 크기 = 시가총액(실시간 가격 × 발행주식수) · 색상(hue) = 상승 빨강 / 하락 초록
+  // 농도(명도) = 기업 규모(시총 클수록 진함).  shares 단위: 십억 주(대략값).
+  const STOCKS = [
+    { sym: "NVDA",  name: "엔비디아",        shares: 24.4 },
+    { sym: "AAPL",  name: "애플",            shares: 14.8 },
+    { sym: "MSFT",  name: "마이크로소프트",   shares: 7.43 },
+    { sym: "GOOGL", name: "알파벳(구글)",     shares: 12.1 },
+    { sym: "AMZN",  name: "아마존",           shares: 10.6 },
+    { sym: "AVGO",  name: "브로드컴",        shares: 4.90 },
+    { sym: "META",  name: "메타",             shares: 2.53 },
+    { sym: "TSM",   name: "TSMC",            shares: 5.19 },
+    { sym: "BRK-B", name: "버크셔",           shares: 2.16 },
+    { sym: "LLY",   name: "일라이릴리",       shares: 0.90 },
+    { sym: "TSLA",  name: "테슬라",           shares: 3.22 },
+    { sym: "JPM",   name: "JP모건",           shares: 2.78 },
+    { sym: "WMT",   name: "월마트",           shares: 8.03 },
+    { sym: "V",     name: "비자",             shares: 1.93 },
+    { sym: "XOM",   name: "엑슨모빌",         shares: 4.30 },
+    { sym: "JNJ",   name: "존슨앤존슨",       shares: 2.41 },
+    { sym: "MA",    name: "마스터카드",       shares: 0.91 },
+    { sym: "COST",  name: "코스트코",         shares: 0.443 },
+    { sym: "HD",    name: "홈디포",           shares: 0.99 },
+    { sym: "ORCL",  name: "오라클",           shares: 2.80 }
+  ];
+
+  // 색상 = 등락률 기준. 0에 가까울수록 짙은 회색, 0에서 멀어질수록 상승 빨강 / 하락 초록이 선명.
+  function tileColor(pct) {
+    if (!isFinite(pct)) return "hsl(220, 6%, 22%)";
+    const t = Math.min(Math.abs(pct) / 4, 1);         // 0(보합) ~ 1(±4% 이상)
+    const hue = pct >= 0 ? 4 : 145;                   // 상승=빨강, 하락=초록
+    const sat = Math.round(8 + t * 64);               // 8%(회색) → 72%(선명)
+    const light = Math.round(24 + t * 22);            // 24%(짙은 회색) → 46%(선명)
+    return "hsl(" + hue + ", " + sat + "%, " + light + "%)";
+  }
+
+  // 스퀘어파이드 트리맵: nodes[{value}] → 각 노드에 .rect = {x,y,w,h} 부여
+  function squarify(nodes, X, Y, W, H) {
+    const total = nodes.reduce((s, n) => s + n.value, 0) || 1;
+    const scale = (W * H) / total;
+    const items = nodes.map(n => ({ n, area: n.value * scale }));
+    items.sort((a, b) => b.area - a.area);
+    let rect = { x: X, y: Y, w: W, h: H };
+
+    const worst = (row, side) => {
+      let sum = 0, mx = -Infinity, mn = Infinity;
+      for (const r of row) { sum += r.area; if (r.area > mx) mx = r.area; if (r.area < mn) mn = r.area; }
+      const s2 = sum * sum, side2 = side * side;
+      return Math.max((side2 * mx) / s2, s2 / (side2 * mn));
+    };
+    const layoutRow = (row) => {
+      const side = Math.min(rect.w, rect.h);
+      const sum = row.reduce((s, r) => s + r.area, 0);
+      const thick = sum / side;
+      if (rect.w >= rect.h) {                 // 왼쪽에 세로 열로 배치
+        let cy = rect.y;
+        for (const r of row) { const rh = r.area / thick; r.n.rect = { x: rect.x, y: cy, w: thick, h: rh }; cy += rh; }
+        rect = { x: rect.x + thick, y: rect.y, w: rect.w - thick, h: rect.h };
+      } else {                                // 위에 가로 행으로 배치
+        let cx = rect.x;
+        for (const r of row) { const rw = r.area / thick; r.n.rect = { x: cx, y: rect.y, w: rw, h: thick }; cx += rw; }
+        rect = { x: rect.x, y: rect.y + thick, w: rect.w, h: rect.h - thick };
+      }
+    };
+
+    let row = [], idx = 0;
+    while (idx < items.length) {
+      const side = Math.min(rect.w, rect.h) || 1;
+      const c = items[idx];
+      if (row.length === 0 || worst(row, side) >= worst(row.concat([c]), side)) { row.push(c); idx++; }
+      else { layoutRow(row); row = []; }
+    }
+    if (row.length) layoutRow(row);
+    return nodes;
+  }
+
+  function fetchQuote(sym) {
+    const c = _quoteCache.get(sym);
+    if (c && (Date.now() - c.t) < 20000) return c.promise;   // 20초 이내면 재사용
+    const promise = fetchQuoteRaw(sym).catch(err => { _quoteCache.delete(sym); throw err; });
+    _quoteCache.set(sym, { t: Date.now(), promise });
+    return promise;
+  }
+
+  async function fetchQuoteRaw(sym) {
+    // interval=30m: 5분봉 대비 응답 크기 ~1/4로 축소(로딩 속도↑). includePrePost로 프리/애프터 최신가 반영.
+    const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) +
+      "?interval=30m&range=1d&includePrePost=true";
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error(sym + " " + r.status);
+    const res = (await r.json()).chart.result[0];
+    const m = res.meta;
+    const prev = m.chartPreviousClose;
+    // 최신 체결가 = 시계열(프리/정규/애프터)의 마지막 유효 종가. 없으면 정규장가로 폴백.
+    let price = m.regularMarketPrice;
+    const closes = res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close;
+    if (Array.isArray(closes)) {
+      for (let i = closes.length - 1; i >= 0; i--) { if (closes[i] != null) { price = closes[i]; break; } }
+    }
+    const abs = price - prev;
+    return { price, abs, pct: (abs / prev) * 100 };
+  }
+
+  function renderMap() {
+    const box = document.getElementById("tm-all");
+    const W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    const GAP = 3;
+    // 크기 기준값 = 시가총액(가격×주식수). 가격을 아직 못 받았으면 주식수로 대체.
+    const nodes = STOCKS.map(it => ({
+      it,
+      value: (it.q && isFinite(it.q.price)) ? it.q.price * it.shares : it.shares
+    }));
+    squarify(nodes, 0, 0, W, H);
+
+    box.innerHTML = nodes.map(nd => {
+      const it = nd.it, q = it.q;
+      const x = nd.rect.x + GAP / 2, y = nd.rect.y + GAP / 2;
+      const w = Math.max(0, nd.rect.w - GAP), h = Math.max(0, nd.rect.h - GAP);
+      const nmSize = Math.max(11, Math.min(26, Math.round(Math.sqrt(w * h) / 6)));
+      const prSize = Math.max(12, Math.round(nmSize * 0.85));
+      const chgSize = Math.max(11, Math.round(nmSize * 0.62));
+      const showTk = h > 46 && w > 52;
+      const showPr = h > 74 && w > 74 && q;
+      const bg = q ? tileColor(q.pct) : "var(--panel-2)";
+
+      let chg = "…";
+      if (q) {
+        const flat = Math.abs(q.pct) < 0.005;
+        const arrow = flat ? "–" : (q.pct > 0 ? "▲" : "▼");
+        const sign = q.pct > 0 ? "+" : "";
+        chg = arrow + " " + sign + q.pct.toFixed(2) + "%";
+      }
+      return '<div class="tm-tile" style="left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;background:' + bg + ';">' +
+        '<div class="nm" style="font-size:' + nmSize + 'px;">' + it.name + '</div>' +
+        (showTk ? '<div class="tk">' + it.sym + '</div>' : '') +
+        (showPr ? '<div class="pr" style="font-size:' + prSize + 'px;">' +
+          q.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div>' : '') +
+        '<div class="chg" style="font-size:' + chgSize + 'px;">' + chg + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  async function refreshStocks() {
+    await Promise.all(STOCKS.map(async it => {
+      try { it.q = await fetchQuote(it.sym); } catch (e) { /* 이전 값 유지 */ }
+    }));
+    renderMap();
+  }
+
+  renderMap();        // 최초: 시총(주식수) 기준 크기로 스켈레톤 표시
+  refreshStocks();    // 시세 로드 후 색·가격 채우고 재배치
+  setInterval(refreshStocks, 60 * 1000); // 1분마다 갱신
+
+  // 새로고침 버튼: 클릭 시 트리맵 시세 즉시 재조회
+  document.getElementById("tmRefresh").addEventListener("click", async e => {
+    const btn = e.currentTarget;
+    btn.classList.add("spinning");
+    btn.disabled = true;
+    _quoteCache.clear();   // 캐시 무시하고 최신값 강제 조회
+    try { await refreshStocks(); }
+    finally { btn.classList.remove("spinning"); btn.disabled = false; }
+  });
+
+  let _rz;
+  window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(renderMap, 200); });
+</script>
+</body>
+</html>
