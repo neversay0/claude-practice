@@ -1,0 +1,8 @@
+# Netlify 설정
+# /yq/* 요청을 Netlify 서버가 Yahoo Finance로 대신 전달(프록시)한다.
+# 브라우저는 같은 도메인(/yq/...)만 호출하므로 CORS 문제가 사라진다.
+[[redirects]]
+  from = "/yq/*"
+  to = "https://query1.finance.yahoo.com/:splat"
+  status = 200
+  force = true
