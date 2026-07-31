@@ -570,13 +570,38 @@
     return promise;
   }
 
-  async function fetchQuoteRaw(sym) {
-    // interval=30m: 5분봉 대비 응답 크기 ~1/4로 축소(로딩 속도↑). includePrePost로 프리/애프터 최신가 반영.
-    const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) +
+  function _timedFetch(u) {
+    const c = new AbortController();
+    const id = setTimeout(() => c.abort(), 9000);
+    return fetch(u, { cache: "no-store", signal: c.signal }).finally(() => clearTimeout(id));
+  }
+
+  // Yahoo 차트 JSON 조회. github.io 등 실제 도메인에선 Yahoo가 CORS를 막으므로 프록시로 우회.
+  // interval=30m: 5분봉 대비 응답 ~1/4. includePrePost로 프리/애프터 최신가 반영.
+  async function fetchYahooChart(sym) {
+    const yurl = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) +
       "?interval=30m&range=1d&includePrePost=true";
-    const r = await fetch(url, { cache: "no-store" });
-    if (!r.ok) throw new Error(sym + " " + r.status);
-    const res = (await r.json()).chart.result[0];
+    const attempts = [];
+    if (location.protocol === "file:") {              // 로컬 파일에선 직접 호출이 가장 빠름
+      attempts.push(async () => (await _timedFetch(yurl)).json());
+    }
+    attempts.push(async () => {                       // CORS 우회 프록시 (배포용)
+      const r = await _timedFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(yurl));
+      if (!r.ok) throw new Error("raw " + r.status);
+      return await r.json();
+    });
+    attempts.push(async () => {                       // 프록시 폴백(JSON 래핑형)
+      const r = await _timedFetch("https://api.allorigins.win/get?url=" + encodeURIComponent(yurl));
+      if (!r.ok) throw new Error("get " + r.status);
+      return JSON.parse((await r.json()).contents);
+    });
+    let lastErr;
+    for (const a of attempts) { try { return await a(); } catch (e) { lastErr = e; } }
+    throw lastErr || new Error("fetch failed: " + sym);
+  }
+
+  async function fetchQuoteRaw(sym) {
+    const res = (await fetchYahooChart(sym)).chart.result[0];
     const m = res.meta;
     const prev = m.chartPreviousClose;
     // 최신 체결가 = 시계열(프리/정규/애프터)의 마지막 유효 종가. 없으면 정규장가로 폴백.
