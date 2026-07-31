@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 할 일 목록</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px;
+  }
+  .app {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+  header {
+    padding: 24px 24px 16px;
+  }
+  header h1 {
+    font-size: 24px;
+    color: #333;
+  }
+  header .count {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #888;
+  }
+  .input-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 24px 16px;
+  }
+  .input-row #todoInput {
+    flex: 1 1 100%;
+  }
+  .input-row #dueInput {
+    flex: 1 1 auto;
+  }
+  .input-row input {
+    padding: 12px 14px;
+    border: 2px solid #e6e6e6;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .input-row input:focus { border-color: #764ba2; }
+  .input-row button {
+    padding: 0 18px;
+    border: none;
+    border-radius: 10px;
+    background: #764ba2;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .input-row button:hover { background: #5e3a86; }
+  .filters {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 12px;
+  }
+  .filters button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: #f2f2f5;
+    color: #666;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .filters button.active {
+    background: #764ba2;
+    color: #fff;
+  }
+  ul.list { list-style: none; }
+  ul.list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-top: 1px solid #f0f0f0;
+  }
+  ul.list li .check {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  ul.list li.done .check {
+    background: #764ba2;
+    border-color: #764ba2;
+  }
+  ul.list li.done .check::after {
+    content: "✓";
+    color: #fff;
+    font-size: 13px;
+  }
+  ul.list li .text {
+    flex: 1;
+    font-size: 15px;
+    color: #333;
+    word-break: break-word;
+  }
+  ul.list li.done .text {
+    text-decoration: line-through;
+    text-decoration-color: #2563eb;
+    text-decoration-thickness: 2px;
+    color: #bbb;
+  }
+  ul.list li .due {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    background: #f2f2f5;
+    padding: 4px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  ul.list li .due.overdue {
+    color: #fff;
+    background: #e74c3c;
+  }
+  ul.list li.done .due {
+    opacity: 0.45;
+    background: #f2f2f5;
+    color: #999;
+  }
+  ul.list li .del {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  ul.list li .del:hover { color: #e74c3c; }
+  .empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: #bbb;
+    font-size: 14px;
+  }
+  footer {
+    padding: 14px 24px;
+    text-align: right;
+    border-top: 1px solid #f0f0f0;
+  }
+  footer button {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  footer button:hover { color: #e74c3c; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>할 일 목록</h1>
+    <div class="count" id="count"></div>
+  </header>
+  <div class="input-row">
+    <input type="text" id="todoInput" placeholder="할 일을 입력하세요" maxlength="200">
+    <input type="date" id="dueInput">
+    <button id="addBtn">추가</button>
+  </div>
+  <div class="filters">
+    <button data-filter="all" class="active">전체</button>
+    <button data-filter="active">진행중</button>
+    <button data-filter="done">완료</button>
+  </div>
+  <ul class="list" id="list"></ul>
+  <footer>
+    <button id="clearDone">완료 항목 지우기</button>
+  </footer>
+</div>
+
+<script>
+  const STORAGE_KEY = "todos.v1";
+  let todos = load();
+  let filter = "all";
+
+  const input = document.getElementById("todoInput");
+  const dueInput = document.getElementById("dueInput");
+  const listEl = document.getElementById("list");
+  const countEl = document.getElementById("count");
+
+  function dday(due) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(due + "T00:00:00");
+    const diff = Math.round((d - today) / 86400000);
+    if (diff === 0) return "D-day";
+    return diff > 0 ? "D-" + diff : "D+" + (-diff);
+  }
+  function isOverdue(due) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return new Date(due + "T00:00:00") < today;
+  }
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+
+  function addTodo() {
+    const text = input.value.trim();
+    if (!text) return;
+    todos.push({ id: Date.now() + Math.random(), text, done: false, due: dueInput.value || null });
+    input.value = "";
+    dueInput.value = "";
+    save();
+    render();
+  }
+
+  function toggle(id) {
+    const t = todos.find(t => t.id === id);
+    if (t) { t.done = !t.done; save(); render(); }
+  }
+
+  function remove(id) {
+    todos = todos.filter(t => t.id !== id);
+    save();
+    render();
+  }
+
+  function render() {
+    let visible = todos;
+    if (filter === "active") visible = todos.filter(t => !t.done);
+    if (filter === "done") visible = todos.filter(t => t.done);
+
+    visible = visible.slice().sort((a, b) => {
+      if (!a.due && !b.due) return 0;
+      if (!a.due) return 1;
+      if (!b.due) return -1;
+      return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+    });
+
+    listEl.innerHTML = "";
+    if (visible.length === 0) {
+      const li = document.createElement("li");
+      li.className = "empty-wrap";
+      li.innerHTML = '<div class="empty">할 일이 없습니다 🎉</div>';
+      listEl.appendChild(li);
+    } else {
+      visible.forEach(t => {
+        const li = document.createElement("li");
+        if (t.done) li.classList.add("done");
+
+        const check = document.createElement("div");
+        check.className = "check";
+        check.onclick = () => toggle(t.id);
+
+        const span = document.createElement("span");
+        span.className = "text";
+        span.textContent = t.text;
+
+        const del = document.createElement("button");
+        del.className = "del";
+        del.textContent = "×";
+        del.onclick = () => remove(t.id);
+
+        li.append(check, span);
+
+        if (t.due) {
+          const due = document.createElement("span");
+          due.className = "due";
+          if (!t.done && isOverdue(t.due)) due.classList.add("overdue");
+          due.textContent = t.due + " · " + dday(t.due);
+          li.append(due);
+        }
+
+        li.append(del);
+        listEl.appendChild(li);
+      });
+    }
+
+    const left = todos.filter(t => !t.done).length;
+    countEl.textContent = `전체 ${todos.length}개 · 진행중 ${left}개`;
+  }
+
+  document.getElementById("addBtn").onclick = addTodo;
+  input.addEventListener("keydown", e => { if (e.key === "Enter") addTodo(); });
+
+  document.querySelectorAll(".filters button").forEach(btn => {
+    btn.onclick = () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      render();
+    };
+  });
+
+  document.getElementById("clearDone").onclick = () => {
+    todos = todos.filter(t => !t.done);
+    save();
+    render();
+  };
+
+  render();
+</script>
+</body>
+</html>
