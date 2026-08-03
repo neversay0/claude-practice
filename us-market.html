@@ -158,6 +158,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── 간밤 이슈 브리핑 ── */
+  .brief-asof { font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 9px; }
   .brief-lead { font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 600; }
   .brief-body ul { margin: 0; padding-left: 18px; }
   .brief-body li { margin: 8px 0; font-size: 14px; line-height: 1.65; color: var(--text); }
@@ -517,11 +518,13 @@
       const r = await _timedFetch("briefing.json?t=" + Date.now());
       if (!r.ok) throw new Error("no file");
       const b = await r.json();
-      document.getElementById("briefDate").textContent = b.date ? "(" + b.date + " 기준)" : "";
+      document.getElementById("briefDate").textContent = "";
+      const asof = b.asof || b.date || "";
+      const asofHtml = asof ? '<div class="brief-asof">🕒 기준 시각 · ' + _esc(asof) + '</div>' : '';
       const lead = b.lead ? '<div class="brief-lead">' + _esc(b.lead) + '</div>' : '';
       const items = (b.items || []).map(t => '<li>' + _esc(t) + '</li>').join('');
       const src = b.source ? '<div class="brief-src">' + _esc(b.source) + '</div>' : '';
-      panel.innerHTML = '<div class="brief-body">' + lead + '<ul>' + items + '</ul>' + src + '</div>';
+      panel.innerHTML = '<div class="brief-body">' + asofHtml + lead + '<ul>' + items + '</ul>' + src + '</div>';
     } catch (e) {
       document.getElementById("briefDate").textContent = "";
       panel.innerHTML = '<div class="brief-empty">아직 오늘 브리핑이 없습니다. 대화창에서 "브리핑 갱신해줘"라고 하면 채워집니다.</div>';
