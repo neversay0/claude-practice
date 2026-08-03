@@ -157,6 +157,14 @@
   .refresh-btn.spinning { animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── 간밤 이슈 브리핑 ── */
+  .brief-lead { font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 600; }
+  .brief-body ul { margin: 0; padding-left: 18px; }
+  .brief-body li { margin: 8px 0; font-size: 14px; line-height: 1.65; color: var(--text); }
+  .brief-body li::marker { color: var(--accent); }
+  .brief-empty { color: var(--muted); font-size: 13px; padding: 4px 2px; line-height: 1.6; }
+  .brief-src { margin-top: 12px; font-size: 11px; color: var(--muted); }
+
   /* ── 시장 지표 탭 패널 (Yahoo Finance) ── */
   .mkt-tabs { display: flex; gap: 4px; padding: 10px 10px 0; flex-wrap: wrap; }
   .mkt-tabs button {
@@ -233,6 +241,18 @@
           <span class="tk-item"><span class="nm">불러오는 중…</span></span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- 간밤 미장 주요 이슈 브리핑 -->
+  <section>
+    <div class="section-title" style="display:flex; align-items:center; gap:8px;">
+      <span>📝 간밤 미장 주요 이슈 브리핑</span>
+      <span id="briefDate" style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px;"></span>
+      <button id="briefRefresh" class="refresh-btn" title="새로고침" aria-label="새로고침">↻</button>
+    </div>
+    <div class="panel" id="briefPanel">
+      <div class="brief-empty">브리핑 불러오는 중…</div>
     </div>
   </section>
 
@@ -485,6 +505,35 @@
 
   refreshTicker();
   setInterval(refreshTicker, 60 * 1000); // 1분마다 갱신
+
+  // ── 간밤 이슈 브리핑 (briefing.json에서 로드) ──
+  function _esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  async function loadBriefing() {
+    const panel = document.getElementById("briefPanel");
+    try {
+      const r = await _timedFetch("briefing.json?t=" + Date.now());
+      if (!r.ok) throw new Error("no file");
+      const b = await r.json();
+      document.getElementById("briefDate").textContent = b.date ? "(" + b.date + " 기준)" : "";
+      const lead = b.lead ? '<div class="brief-lead">' + _esc(b.lead) + '</div>' : '';
+      const items = (b.items || []).map(t => '<li>' + _esc(t) + '</li>').join('');
+      const src = b.source ? '<div class="brief-src">' + _esc(b.source) + '</div>' : '';
+      panel.innerHTML = '<div class="brief-body">' + lead + '<ul>' + items + '</ul>' + src + '</div>';
+    } catch (e) {
+      document.getElementById("briefDate").textContent = "";
+      panel.innerHTML = '<div class="brief-empty">아직 오늘 브리핑이 없습니다. 대화창에서 "브리핑 갱신해줘"라고 하면 채워집니다.</div>';
+    }
+  }
+  document.getElementById("briefRefresh").addEventListener("click", async e => {
+    const btn = e.currentTarget;
+    btn.classList.add("spinning"); btn.disabled = true;
+    try { await loadBriefing(); }
+    finally { btn.classList.remove("spinning"); btn.disabled = false; }
+  });
+  loadBriefing();
 
   // ── 종목 트리맵 (Yahoo Finance 시세) ──
   // 크기 = 시가총액(실시간 가격 × 발행주식수) · 색상(hue) = 상승 빨강 / 하락 초록
