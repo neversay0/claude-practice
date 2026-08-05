@@ -115,16 +115,19 @@
   .treemap {
     position: relative;
     width: 100%;
-    height: 560px;
+    height: 640px;
     margin-bottom: 18px;
     background: var(--bg);
     border-radius: 10px;
     overflow: hidden;
   }
+  /* 모바일: 화면 폭이 좁아 타일 개별 면적이 줄어드므로, 세로를 넉넉히 늘려
+     30개 타일도 가격·등락률 숫자가 잘리지 않고 보이도록 함. */
+  @media (max-width: 640px) { .treemap { height: 980px; } }
   .tm-tile {
     position: absolute;
     box-sizing: border-box;
-    padding: 7px 9px;
+    padding: 6px 8px;
     border-radius: 7px;
     color: #fff;
     overflow: hidden;
@@ -134,10 +137,19 @@
     text-shadow: 0 1px 2px rgba(0,0,0,.45);
     transition: background .4s ease, left .3s ease, top .3s ease, width .3s ease, height .3s ease;
   }
-  .tm-tile .nm { font-weight: 700; line-height: 1.1; }
+  .tm-tile .nm {
+    font-weight: 700; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .tm-tile .tk { font-size: 11px; opacity: .78; margin-top: 1px; }
-  .tm-tile .pr { font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 4px; }
-  .tm-tile .chg { font-weight: 600; font-variant-numeric: tabular-nums; margin-top: auto; }
+  .tm-tile .pr {
+    font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tm-tile .chg {
+    font-weight: 700; font-variant-numeric: tabular-nums; margin-top: auto;
+    white-space: nowrap;
+  }
 
   /* ── 새로고침 버튼 ── */
   .refresh-btn {
@@ -338,7 +350,7 @@
   <!-- 반도체 · 하이퍼스케일러 -->
   <section>
     <div class="section-title" style="display:flex; align-items:center; gap:8px;">
-      <span>🔌 미국 시가총액 상위 20 지도</span>
+      <span>🔌 미국 시가총액 상위 30 지도</span>
       <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px;">
         (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#ef4444;">■</span> 빨강 · 하락 <span style="color:#22c55e;">■</span> 초록, 등락 클수록 선명 · 크기=시가총액)</span>
       <button id="tmRefresh" class="refresh-btn" title="새로고침" aria-label="새로고침">↻</button>
@@ -591,7 +603,17 @@
     { sym: "MA",    name: "마스터카드",       shares: 0.91 },
     { sym: "COST",  name: "코스트코",         shares: 0.443 },
     { sym: "HD",    name: "홈디포",           shares: 0.99 },
-    { sym: "ORCL",  name: "오라클",           shares: 2.80 }
+    { sym: "ORCL",  name: "오라클",           shares: 2.80 },
+    { sym: "NFLX",  name: "넷플릭스",         shares: 0.43 },
+    { sym: "PLTR",  name: "팔란티어",         shares: 2.36 },
+    { sym: "ABBV",  name: "애브비",           shares: 1.76 },
+    { sym: "BAC",   name: "뱅크오브아메리카", shares: 7.60 },
+    { sym: "KO",    name: "코카콜라",         shares: 4.32 },
+    { sym: "PEP",   name: "펩시코",           shares: 1.38 },
+    { sym: "CVX",   name: "쉐브론",           shares: 1.83 },
+    { sym: "CRM",   name: "세일즈포스",       shares: 0.95 },
+    { sym: "ADBE",  name: "어도비",           shares: 0.42 },
+    { sym: "AMD",   name: "AMD",             shares: 1.62 }
   ];
 
   // 색상 = 등락률 기준. 0에 가까울수록 짙은 회색, 0에서 멀어질수록 상승 빨강 / 하락 초록이 선명.
@@ -715,9 +737,9 @@
       const w = Math.max(0, nd.rect.w - GAP), h = Math.max(0, nd.rect.h - GAP);
       const nmSize = Math.max(11, Math.min(26, Math.round(Math.sqrt(w * h) / 6)));
       const prSize = Math.max(12, Math.round(nmSize * 0.85));
-      const chgSize = Math.max(11, Math.round(nmSize * 0.62));
-      const showTk = h > 46 && w > 52;
-      const showPr = h > 74 && w > 74 && q;
+      const chgSize = Math.max(12, Math.round(nmSize * 0.68));
+      const showTk = h > 40 && w > 46;
+      const showPr = h > 56 && w > 56 && q;
       const bg = q ? tileColor(q.pct) : "var(--panel-2)";
 
       let chg = "…";
