@@ -512,31 +512,61 @@
     return String(s).replace(/[&<>"']/g, c =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
-  async function loadBriefing() {
+  function _renderBriefing(b) {
     const panel = document.getElementById("briefPanel");
+    document.getElementById("briefDate").textContent = "";
+    const asof = b.asof || b.date || "";
+    const asofHtml = asof ? '<div class="brief-asof">🕒 기준 시각 · ' + _esc(asof) + '</div>' : '';
+    const lead = b.lead ? '<div class="brief-lead">' + _esc(b.lead) + '</div>' : '';
+    const items = (b.items || []).map(t => '<li>' + _esc(t) + '</li>').join('');
+    const src = b.source ? '<div class="brief-src">' + _esc(b.source) + '</div>' : '';
+    panel.innerHTML = '<div class="brief-body">' + asofHtml + lead + '<ul>' + items + '</ul>' + src + '</div>';
+  }
+  // 브리핑 함수는 웹 검색+생성으로 최대 수십 초 걸릴 수 있어 별도 타임아웃(40초).
+  function _fetchLong(u, ms) {
+    const c = new AbortController();
+    const id = setTimeout(() => c.abort(), ms);
+    return fetch(u, { cache: "no-store", signal: c.signal }).finally(() => clearTimeout(id));
+  }
+  async function _staticBriefing() {
+    const r = await _timedFetch("briefing.json?t=" + Date.now());
+    if (!r.ok) throw new Error("no file");
+    return await r.json();
+  }
+  // force=true(버튼): 항상 실시간 재생성.  force=false(페이지 로드): 30분 내 생성분 재사용.
+  async function loadBriefing(force) {
+    const panel = document.getElementById("briefPanel");
+    if (!force) {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem("briefing") || "null");
+        if (cached && cached.body && (Date.now() - cached.at) < 30 * 60 * 1000) {
+          _renderBriefing(cached.body); return;
+        }
+      } catch (e) {}
+    }
+    if (force) panel.innerHTML = '<div class="brief-empty">최신 이슈를 가져오는 중…</div>';
     try {
-      const r = await _timedFetch("briefing.json?t=" + Date.now());
-      if (!r.ok) throw new Error("no file");
+      const r = await _fetchLong("/.netlify/functions/briefing" + (force ? "?force=1" : ""), 40000);
+      if (!r.ok) throw new Error("fn " + r.status);
       const b = await r.json();
-      document.getElementById("briefDate").textContent = "";
-      const asof = b.asof || b.date || "";
-      const asofHtml = asof ? '<div class="brief-asof">🕒 기준 시각 · ' + _esc(asof) + '</div>' : '';
-      const lead = b.lead ? '<div class="brief-lead">' + _esc(b.lead) + '</div>' : '';
-      const items = (b.items || []).map(t => '<li>' + _esc(t) + '</li>').join('');
-      const src = b.source ? '<div class="brief-src">' + _esc(b.source) + '</div>' : '';
-      panel.innerHTML = '<div class="brief-body">' + asofHtml + lead + '<ul>' + items + '</ul>' + src + '</div>';
+      if (b.error) throw new Error(b.error);
+      _renderBriefing(b);
+      try { sessionStorage.setItem("briefing", JSON.stringify({ at: Date.now(), body: b })); } catch (e) {}
+      return;
     } catch (e) {
+      // 실시간 생성 실패 → 마지막으로 커밋된 정적 브리핑으로 폴백(박스가 비지 않도록)
+      try { _renderBriefing(await _staticBriefing()); return; } catch (e2) {}
       document.getElementById("briefDate").textContent = "";
-      panel.innerHTML = '<div class="brief-empty">아직 오늘 브리핑이 없습니다. 대화창에서 "브리핑 갱신해줘"라고 하면 채워집니다.</div>';
+      panel.innerHTML = '<div class="brief-empty">브리핑을 불러오지 못했습니다. 새로고침(↻)을 눌러 다시 시도해 주세요.</div>';
     }
   }
   document.getElementById("briefRefresh").addEventListener("click", async e => {
     const btn = e.currentTarget;
     btn.classList.add("spinning"); btn.disabled = true;
-    try { await loadBriefing(); }
+    try { await loadBriefing(true); }
     finally { btn.classList.remove("spinning"); btn.disabled = false; }
   });
-  loadBriefing();
+  loadBriefing(false);
 
   // ── 종목 트리맵 (Yahoo Finance 시세) ──
   // 크기 = 시가총액(실시간 가격 × 발행주식수) · 색상(hue) = 상승 빨강 / 하락 초록
