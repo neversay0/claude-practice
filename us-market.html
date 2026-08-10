@@ -135,8 +135,11 @@
     flex-direction: column;
     background: var(--panel-2);
     text-shadow: 0 1px 2px rgba(0,0,0,.45);
-    transition: background .4s ease, left .3s ease, top .3s ease, width .3s ease, height .3s ease;
+    transition: background .4s ease, left .3s ease, top .3s ease, width .3s ease, height .3s ease, filter .15s ease;
+    text-decoration: none;
+    cursor: pointer;
   }
+  .tm-tile:hover { filter: brightness(1.18); }
   .tm-tile .nm {
     font-weight: 700; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -352,7 +355,7 @@
     <div class="section-title" style="display:flex; align-items:center; gap:8px;">
       <span>🔌 미국 시가총액 상위 30 지도</span>
       <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px;">
-        (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#ef4444;">■</span> 빨강 · 하락 <span style="color:#22c55e;">■</span> 초록, 등락 클수록 선명 · 크기=시가총액)</span>
+        (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#ef4444;">■</span> 빨강 · 하락 <span style="color:#22c55e;">■</span> 초록, 등락 클수록 선명 · 크기=시가총액 · 타일 클릭 시 야후 파이낸스 상세정보 새 탭)</span>
       <button id="tmRefresh" class="refresh-btn" title="새로고침" aria-label="새로고침">↻</button>
     </div>
     <div class="treemap" id="tm-all"></div>
@@ -749,13 +752,17 @@
         const sign = q.pct > 0 ? "+" : "";
         chg = arrow + " " + sign + q.pct.toFixed(2) + "%";
       }
-      return '<div class="tm-tile" style="left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;background:' + bg + ';">' +
+      // 타일 클릭 → 야후 파이낸스 해당 종목 페이지를 새 탭으로 열기(순자산가치·재무제표 등 상세정보 제공).
+      // 새 탭이라 대시보드 탭은 그대로 유지됨 — 뒤로가기 불필요, 그냥 탭 전환/닫기.
+      const href = "https://finance.yahoo.com/quote/" + encodeURIComponent(it.sym);
+      return '<a class="tm-tile" href="' + href + '" target="_blank" rel="noopener" ' +
+        'style="left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;background:' + bg + ';">' +
         '<div class="nm" style="font-size:' + nmSize + 'px;">' + it.name + '</div>' +
         (showTk ? '<div class="tk">' + it.sym + '</div>' : '') +
         (showPr ? '<div class="pr" style="font-size:' + prSize + 'px;">' +
           q.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div>' : '') +
         '<div class="chg" style="font-size:' + chgSize + 'px;">' + chg + '</div>' +
-        '</div>';
+        '</a>';
     }).join("");
   }
 
