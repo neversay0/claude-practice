@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국사 시대 퀴즈</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #141922;
+    --panel-2: #1b212d;
+    --border: #263041;
+    --text: #e6ebf2;
+    --muted: #8b97a8;
+    --accent: #d4af37;
+    --accent-2: #b8902e;
+    --correct: #22c55e;
+    --wrong: #ef4444;
+    --locked: #3a4353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  header.top {
+    text-align: center;
+    padding: 22px 18px;
+    background: linear-gradient(135deg, #2a2010 0%, #141922 70%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  header.top h1 {
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  header.top p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  header.top .reset-btn {
+    margin-top: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  header.top .reset-btn:hover { color: var(--text); border-color: var(--accent-2); }
+
+  /* 로드맵 */
+  .roadmap {
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .level-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+  .level-tab {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .level-tab:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  .level-tab.active { background: rgba(212,175,55,0.18); border-color: var(--accent); color: var(--accent); }
+  .level-tab:disabled { color: var(--locked); cursor: not-allowed; }
+
+  .era-nodes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .roadmap .node {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .roadmap .node:hover { border-color: var(--accent); color: var(--text); }
+  .roadmap .node.done { background: rgba(34,197,94,0.15); border-color: var(--correct); color: var(--correct); }
+  .roadmap .node.current { background: rgba(212,175,55,0.18); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .roadmap .node.locked { color: var(--locked); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 26px 22px;
+    text-align: center;
+  }
+
+  .era-badge {
+    display: inline-block;
+    background: rgba(212,175,55,0.15);
+    border: 1px solid var(--accent-2);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  .big-title { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+  .blurb { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 22px; }
+
+  .dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .dots .dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .dots .dot.filled { background: var(--correct); border-color: var(--correct); }
+  .dots .dot.answered { background: var(--accent); border-color: var(--accent); }
+  .dots .dot.current-dot { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212,175,55,0.25); }
+  .q-progress { color: var(--muted); font-size: 12px; margin: -10px 0 12px; }
+
+  .question-text {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .question-text .year-tag {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    text-align: left;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 15px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .choice-btn:disabled { cursor: default; }
+  .choice-btn.correct { background: rgba(34,197,94,0.18); border-color: var(--correct); color: var(--correct); }
+  .choice-btn.wrong { background: rgba(239,68,68,0.18); border-color: var(--wrong); color: var(--wrong); }
+  .choice-btn.picked { background: rgba(212,175,55,0.16); border-color: var(--accent); color: var(--accent); }
+
+  .feedback { margin-top: 16px; font-size: 14px; min-height: 20px; font-weight: 700; }
+  .feedback.correct { color: var(--correct); }
+  .feedback.wrong { color: var(--wrong); }
+
+  .quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 10px; }
+  .secondary-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .secondary-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .big-title.pass { color: var(--correct); }
+  .big-title.fail { color: var(--wrong); }
+  .result-list { text-align: left; display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+  .result-row { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--panel-2); }
+  .result-row.ok { border-color: rgba(34,197,94,0.4); }
+  .result-row.no { border-color: rgba(239,68,68,0.4); }
+  .result-num { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .result-row.ok .result-num { color: var(--correct); }
+  .result-row.no .result-num { color: var(--wrong); }
+  .result-q { font-size: 14px; line-height: 1.4; margin-bottom: 6px; }
+  .result-ans { font-size: 12px; color: var(--muted); }
+
+  .primary-btn {
+    margin-top: 20px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: #1a1408;
+    font-weight: 800;
+    font-size: 15px;
+    border: none;
+    padding: 13px 28px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .primary-btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .stats-line { margin-top: 18px; color: var(--muted); font-size: 12px; }
+
+  .trophy { font-size: 52px; margin-bottom: 10px; }
+
+  footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🏯 한국사 시대 퀴즈</h1>
+    <p>모든 문제는 실제 한국사능력검정시험 기출문제입니다. 아래 목록에서 원하는 시대를 언제든 자유롭게 골라 도전하세요.<br>5문제를 모두 푼 뒤 제출하면 결과가 한 번에 표시됩니다. 1단계(기본) 9개 시대를 모두 클리어하면 더 어려운 2단계(심화)가 열립니다.</p>
+    <button class="reset-btn" onclick="resetGame()">처음부터 다시하기</button>
+  </header>
+  <div id="roadmap" class="roadmap"></div>
+  <div id="app" class="panel"></div>
+  <footer>모든 문제는 실제 한국사능력검정시험 기출문제입니다 (문제 끝 연도 표기 참고) · 1단계 · 기본 등급 / 2단계 · 심화 등급 · 각 단계 9개 시대 · 진행 상황은 이 브라우저에 자동 저장됩니다</footer>
+</div>
+
+<script src="kh-data-1.js"></script>
+<script src="kh-data-2.js"></script>
+<script src="kh-data-3.js"></script>
+<script src="kh-data-4.js"></script>
+<script src="kh-data-5.js"></script>
+<script src="kh-data-6.js"></script>
+<script src="kh-data-7.js"></script>
+<script>
+const STAGES = [
+  ...STAGES_PART1, ...STAGES_PART2, ...STAGES_PART3, ...STAGES_PART4,
+  ...STAGES_PART5, ...STAGES_PART6, ...STAGES_PART7
+];
+
+const STAGES_ADV = [
+  ...STAGES_ADV_PART1, ...STAGES_ADV_PART2, ...STAGES_ADV_PART3, ...STAGES_ADV_PART4,
+  ...STAGES_ADV_PART5, ...STAGES_ADV_PART6, ...STAGES_ADV_PART7
+];
+const LEVELS = [
+  { label: "1단계 · 기본", stages: STAGES },
+  { label: "2단계 · 심화", stages: STAGES_ADV }
+];
+
+const NEED_CORRECT = 5;
+const STORAGE_KEY = "krhistory_quiz_state_v3";
+
+let state = {
+  levelIdx: 0,
+  stageIdx: 0,
+  stats: { asked: 0, correct: 0, wrong: 0 },
+  cleared: {},
+  unlockedLevel: 0,
+  screen: "start",
+  quizQuestions: [],
+  userAnswers: [],
+  qPos: 0,
+  lastResult: null
+};
+
+function initClearedForLevel(li) {
+  const len = LEVELS[li].stages.length;
+  if (!Array.isArray(state.cleared[li]) || state.cleared[li].length !== len) {
+    state.cleared[li] = Array.from({length: len}, () => false);
+  }
+}
+LEVELS.forEach((_, li) => initClearedForLevel(li));
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (typeof s.levelIdx === "number" && s.levelIdx >= 0 && s.levelIdx < LEVELS.length &&
+        typeof s.stageIdx === "number" && s.stageIdx >= 0 && s.stageIdx < LEVELS[s.levelIdx].stages.length) {
+      if (typeof s.cleared !== "object" || s.cleared === null) s.cleared = {};
+      if (typeof s.unlockedLevel !== "number") s.unlockedLevel = 0;
+      return s;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      levelIdx: state.levelIdx,
+      stageIdx: state.stageIdx,
+      stats: state.stats,
+      cleared: state.cleared,
+      unlockedLevel: state.unlockedLevel
+    }));
+  } catch (e) {}
+}
+
+function resetGame() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  state = { levelIdx: 0, stageIdx: 0, stats: { asked: 0, correct: 0, wrong: 0 }, cleared: {}, unlockedLevel: 0, screen: "start", quizQuestions: [], userAnswers: [], qPos: 0, lastResult: null };
+  LEVELS.forEach((_, li) => initClearedForLevel(li));
+  render();
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function resetQuizProgress() {
+  state.quizQuestions = [];
+  state.userAnswers = [];
+  state.qPos = 0;
+}
+
+function goStageIntro(idx) {
+  state.stageIdx = idx;
+  state.screen = "stageIntro";
+  resetQuizProgress();
+  render();
+}
+
+function switchLevel(li) {
+  if (li > state.unlockedLevel) return;
+  initClearedForLevel(li);
+  state.levelIdx = li;
+  const arr = state.cleared[li];
+  const firstOpen = arr.findIndex(v => !v);
+  state.stageIdx = firstOpen === -1 ? 0 : firstOpen;
+  state.screen = "stageIntro";
+  resetQuizProgress();
+  render();
+}
+
+function buildQuizSet() {
+  const stage = LEVELS[state.levelIdx].stages[state.stageIdx];
+  const idxPool = shuffle(stage.questions.map((_, i) => i)).slice(0, NEED_CORRECT);
+  while (idxPool.length < NEED_CORRECT) {
+    idxPool.push(Math.floor(Math.random() * stage.questions.length));
+  }
+  return idxPool.map(idx => {
+    const src = stage.questions[idx];
+    const order = shuffle(src.c.map((text, i) => ({ text, orig: i })));
+    return { q: src.q, year: src.y || null, choices: order, answerOrig: src.a };
+  });
+}
+
+function startQuiz() {
+  state.quizQuestions = buildQuizSet();
+  state.userAnswers = Array(NEED_CORRECT).fill(null);
+  state.qPos = 0;
+  state.screen = "quiz";
+  render();
+}
+
+function retryStage() {
+  startQuiz();
+}
+
+function selectChoice(pos) {
+  state.userAnswers[state.qPos] = pos;
+  render();
+}
+
+function goPrevQuestion() {
+  if (state.qPos > 0) {
+    state.qPos--;
+    render();
+  }
+}
+
+function goNextOrSubmit() {
+  if (state.userAnswers[state.qPos] === null) return;
+  if (state.qPos < NEED_CORRECT - 1) {
+    state.qPos++;
+    render();
+  } else {
+    submitQuiz();
+  }
+}
+
+function submitQuiz() {
+  const items = state.quizQuestions.map((qz, i) => {
+    const selPos = state.userAnswers[i];
+    const isCorrect = selPos !== null && qz.choices[selPos].orig === qz.answerOrig;
+    return {
+      q: qz.q,
+      year: qz.year,
+      userText: selPos !== null ? qz.choices[selPos].text : "(답을 선택하지 않음)",
+      correctText: qz.choices.find(c => c.orig === qz.answerOrig).text,
+      isCorrect
+    };
+  });
+  const correctCount = items.filter(it => it.isCorrect).length;
+  const pass = correctCount >= NEED_CORRECT;
+
+  state.stats.asked += NEED_CORRECT;
+  state.stats.correct += correctCount;
+  state.stats.wrong += (NEED_CORRECT - correctCount);
+
+  let allDone = false;
+  if (pass) {
+    initClearedForLevel(state.levelIdx);
+    state.cleared[state.levelIdx][state.stageIdx] = true;
+    allDone = state.cleared[state.levelIdx].every(Boolean);
+    if (allDone && state.levelIdx < LEVELS.length - 1) {
+      state.unlockedLevel = Math.max(state.unlockedLevel, state.levelIdx + 1);
+    }
+  }
+
+  state.lastResult = { items, correctCount, pass, allDone };
+  state.screen = "result";
+  persist();
+  render();
+}
+
+function findNextUncleared() {
+  const arr = state.cleared[state.levelIdx];
+  const idx = arr.findIndex(v => !v);
+  return idx === -1 ? 0 : idx;
+}
+
+function nextStage() {
+  goStageIntro(findNextUncleared());
+}
+
+function afterPassContinue() {
+  const r = state.lastResult;
+  if (!r) return;
+  if (r.allDone) {
+    if (state.levelIdx >= LEVELS.length - 1) {
+      state.screen = "gameClear";
+    } else {
+      state.screen = "levelClear";
+    }
+    render();
+  } else {
+    nextStage();
+  }
+}
+
+function startNextLevel() {
+  const li = state.levelIdx + 1;
+  state.levelIdx = li;
+  initClearedForLevel(li);
+  state.stageIdx = 0;
+  state.screen = "stageIntro";
+  resetQuizProgress();
+  persist();
+  render();
+}
+
+function renderRoadmap() {
+  const el = document.getElementById("roadmap");
+  const stages = LEVELS[state.levelIdx].stages;
+  const clearedArr = state.cleared[state.levelIdx] || [];
+
+  const tabsHtml = LEVELS.length > 1 ? `<div class="level-tabs">${LEVELS.map((lv, li) => {
+    const isActive = li === state.levelIdx;
+    const isLocked = li > state.unlockedLevel;
+    return `<button type="button" class="level-tab ${isActive ? "active" : ""}" ${isLocked ? "disabled" : ""} onclick="switchLevel(${li})" title="${isLocked ? "이전 단계를 모두 클리어하면 열립니다" : "이 단계로 이동"}">${isLocked ? "🔒 " : ""}${lv.label}</button>`;
+  }).join("")}</div>` : "";
+
+  const nodesHtml = `<div class="era-nodes">${stages.map((s, i) => {
+    let cls = "";
+    if (clearedArr[i]) cls = "done";
+    else if (i === state.stageIdx && state.screen !== "start") cls = "current";
+    return `<button type="button" class="node ${cls}" onclick="goStageIntro(${i})" title="이 시대로 바로 이동">${i + 1}. ${s.era}</button>`;
+  }).join("")}</div>`;
+
+  el.innerHTML = tabsHtml + nodesHtml;
+}
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function render() {
+  renderRoadmap();
+  const app = document.getElementById("app");
+  const levelLabel = LEVELS[state.levelIdx].label;
+  const stages = LEVELS[state.levelIdx].stages;
+  const stage = stages[state.stageIdx];
+
+  if (state.screen === "start") {
+    const saved = loadSaved();
+    app.innerHTML = `
+      <div class="trophy">📜</div>
+      <div class="big-title">한국사 시대 퀴즈</div>
+      <div class="blurb">고조선부터 현대까지, 모든 문제는 실제 한국사능력검정시험 기출문제(문제 끝 연도 표기)로 구성됩니다.<br>원하는 시대를 위 목록에서 자유롭게 선택해 도전하세요. 5문제를 모두 푼 뒤 제출하면 결과가 표시됩니다. 1단계(기본) 9개 시대를 모두 클리어하면 2단계(심화)가 열립니다.</div>
+      ${saved ? `<button class="primary-btn" onclick='resumeSaved()'>이어하기 (${LEVELS[saved.levelIdx].label} · ${saved.stageIdx + 1}단계 · ${LEVELS[saved.levelIdx].stages[saved.stageIdx].era})</button><br>` : ""}
+      <button class="primary-btn" style="margin-top:12px;" onclick="goStageIntro(0)">${saved ? "처음부터 새로 시작" : "시작하기"}</button>
+    `;
+    return;
+  }
+
+  if (state.screen === "stageIntro") {
+    app.innerHTML = `
+      <div class="era-badge">${levelLabel} · ${state.stageIdx + 1} / ${stages.length}</div>
+      <div class="big-title">${stage.era}</div>
+      <div class="blurb">${stage.blurb}<br>5문제를 모두 푼 뒤 제출하면 결과가 표시돼요. 5문제 모두 맞혀야 클리어!</div>
+      <div class="dots">${Array.from({length: NEED_CORRECT}).map(() => `<span class="dot"></span>`).join("")}</div>
+      <button class="primary-btn" onclick="startQuiz()">문제 풀기 시작</button>
+    `;
+    return;
+  }
+
+  if (state.screen === "quiz") {
+    const qz = state.quizQuestions[state.qPos];
+    const selected = state.userAnswers[state.qPos];
+    const dotsHtml = Array.from({length: NEED_CORRECT}).map((_, i) => {
+      let cls = "";
+      if (i < state.qPos) cls = "answered";
+      if (i === state.qPos) cls += " current-dot";
+      return `<span class="dot ${cls}"></span>`;
+    }).join("");
+    const choicesHtml = qz.choices.map((c, pos) => {
+      const cls = selected === pos ? "picked" : "";
+      return `<button class="choice-btn ${cls}" onclick="selectChoice(${pos})">${esc(c.text)}</button>`;
+    }).join("");
+    const isLast = state.qPos === NEED_CORRECT - 1;
+
+    app.innerHTML = `
+      <div class="era-badge">[ ${levelLabel} · ${stage.era} ]</div>
+      <div class="dots">${dotsHtml}</div>
+      <div class="q-progress">${state.qPos + 1} / ${NEED_CORRECT} 문제 · 정답 여부는 5문제를 모두 제출한 뒤 한 번에 표시됩니다</div>
+      <div class="question-text">${esc(qz.q)}${qz.year ? ` <span class="year-tag">('${qz.year} 기출)</span>` : ""}</div>
+      <div class="choices">${choicesHtml}</div>
+      <div class="quiz-nav">
+        ${state.qPos > 0 ? `<button class="secondary-btn" onclick="goPrevQuestion()">이전 문제</button>` : "<span></span>"}
+        <button class="primary-btn" ${selected === null ? "disabled" : ""} onclick="goNextOrSubmit()">${isLast ? "제출하기" : "다음 문제"}</button>
+      </div>
+    `;
+    return;
+  }
+
+  if (state.screen === "result") {
+    const r = state.lastResult;
+    const rowsHtml = r.items.map((it, i) => `
+      <div class="result-row ${it.isCorrect ? "ok" : "no"}">
+        <div class="result-num">${it.isCorrect ? "✅" : "❌"} ${i + 1}번</div>
+        <div class="result-q">${esc(it.q)}${it.year ? ` <span class="year-tag">('${it.year} 기출)</span>` : ""}</div>
+        <div class="result-ans">내 답: ${esc(it.userText)}${it.isCorrect ? "" : ` · 정답: ${esc(it.correctText)}`}</div>
+      </div>
+    `).join("");
+
+    app.innerHTML = `
+      <div class="trophy">${r.pass ? "🎊" : "😥"}</div>
+      <div class="big-title ${r.pass ? "pass" : "fail"}">${r.pass ? "PASS" : "FAIL"} · ${r.correctCount} / ${NEED_CORRECT}</div>
+      <div class="blurb">${stage.era} 시대 채점 결과입니다.</div>
+      <div class="result-list">${rowsHtml}</div>
+      ${r.pass
+        ? `<button class="primary-btn" onclick="afterPassContinue()">계속하기</button>`
+        : `<button class="primary-btn" onclick="retryStage()">다시 도전하기</button>`}
+      <div class="stats-line">누적 정답 ${state.stats.correct} · 오답 ${state.stats.wrong} · 정답률 ${state.stats.asked ? Math.round(state.stats.correct / state.stats.asked * 100) : 0}%</div>
+    `;
+    return;
+  }
+
+  if (state.screen === "levelClear") {
+    const nextLevel = LEVELS[state.levelIdx + 1];
+    app.innerHTML = `
+      <div class="trophy">⭐</div>
+      <div class="big-title">${levelLabel} 완전 정복!</div>
+      <div class="blurb">${levelLabel}의 9개 시대를 모두 클리어했습니다.<br>이제 더 어려운 <b>${nextLevel.label}</b> 난이도가 열렸어요.</div>
+      <button class="primary-btn" onclick="startNextLevel()">${nextLevel.label} 시작하기</button>
+    `;
+    return;
+  }
+
+  if (state.screen === "gameClear") {
+    app.innerHTML = `
+      <div class="trophy">🏆</div>
+      <div class="big-title">모든 단계를 정복했습니다!</div>
+      <div class="blurb">고조선부터 현대까지, ${LEVELS.length}단계 난이도의 한국사 시대를 모두 마스터했어요.</div>
+      <div class="stats-line">총 문제 시도 ${state.stats.asked}회 · 정답 ${state.stats.correct}회 · 오답 ${state.stats.wrong}회 · 정답률 ${state.stats.asked ? Math.round(state.stats.correct / state.stats.asked * 100) : 0}%</div>
+      <button class="primary-btn" onclick="resetGame()">다시 도전하기</button>
+    `;
+    return;
+  }
+}
+
+function resumeSaved() {
+  const saved = loadSaved();
+  if (!saved) return;
+  state.levelIdx = saved.levelIdx;
+  state.stageIdx = saved.stageIdx;
+  state.stats = saved.stats;
+  state.cleared = saved.cleared || {};
+  state.unlockedLevel = saved.unlockedLevel || 0;
+  LEVELS.forEach((_, li) => initClearedForLevel(li));
+  state.screen = "stageIntro";
+  resetQuizProgress();
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
