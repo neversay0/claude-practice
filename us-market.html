@@ -355,7 +355,7 @@
     <div class="section-title" style="display:flex; align-items:center; gap:8px;">
       <span>🔌 미국 시가총액 상위 30 지도</span>
       <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); font-size:11px;">
-        (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#ef4444;">■</span> 빨강 · 하락 <span style="color:#22c55e;">■</span> 초록, 등락 클수록 선명 · 크기=시가총액 · 타일 클릭 시 야후 파이낸스 상세정보 새 탭)</span>
+        (보합 <span style="color:#6b7280;">■</span> 회색 · 상승 <span style="color:#22c55e;">■</span> 초록 · 하락 <span style="color:#ef4444;">■</span> 빨강, 등락 클수록 선명 · 크기=시가총액 · 타일 클릭 시 야후 파이낸스 상세정보 새 탭)</span>
       <button id="tmRefresh" class="refresh-btn" title="새로고침" aria-label="새로고침">↻</button>
     </div>
     <div class="treemap" id="tm-all"></div>
@@ -584,7 +584,7 @@
   loadBriefing(false);
 
   // ── 종목 트리맵 (Yahoo Finance 시세) ──
-  // 크기 = 시가총액(실시간 가격 × 발행주식수) · 색상(hue) = 상승 빨강 / 하락 초록
+  // 크기 = 시가총액(실시간 가격 × 발행주식수) · 색상(hue) = 미국장 관례: 상승 초록 / 하락 빨강
   // 농도(명도) = 기업 규모(시총 클수록 진함).  shares 단위: 십억 주(대략값).
   const STOCKS = [
     { sym: "NVDA",  name: "엔비디아",        shares: 24.4 },
@@ -619,11 +619,11 @@
     { sym: "AMD",   name: "AMD",             shares: 1.62 }
   ];
 
-  // 색상 = 등락률 기준. 0에 가까울수록 짙은 회색, 0에서 멀어질수록 상승 빨강 / 하락 초록이 선명.
+  // 색상 = 등락률 기준. 0에 가까울수록 짙은 회색, 0에서 멀어질수록 상승 초록 / 하락 빨강이 선명(미국장 관례).
   function tileColor(pct) {
     if (!isFinite(pct)) return "hsl(220, 6%, 22%)";
     const t = Math.min(Math.abs(pct) / 4, 1);         // 0(보합) ~ 1(±4% 이상)
-    const hue = pct >= 0 ? 4 : 145;                   // 상승=빨강, 하락=초록
+    const hue = pct >= 0 ? 145 : 4;                   // 미국장 관례: 상승=초록, 하락=빨강
     const sat = Math.round(8 + t * 64);               // 8%(회색) → 72%(선명)
     const light = Math.round(24 + t * 22);            // 24%(짙은 회색) → 46%(선명)
     return "hsl(" + hue + ", " + sat + "%, " + light + "%)";
